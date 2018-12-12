@@ -1,5 +1,14 @@
 .App {
-  text-align: center;
+  padding: 50px;
+  height: 50%;
+}
+
+.App button {
+  margin-bottom: 10px;
+}
+
+.App table tbody tr {
+  cursor: pointer;
 }
 
 .App-logo {
@@ -22,11 +31,19 @@
   color: #61dafb;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.Chat #chatroom {
+  border: solid 1px black;
+  height: 400px;
+  overflow: auto;
 }
+
+.Chat #members {
+  border: solid 1px black;
+  height: 400px;
+}
+
+.Chat #input_zone {
+  display: flex;
+}
+
+
