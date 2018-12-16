@@ -40,6 +40,29 @@
 .Chat #members {
   border: solid 1px black;
   height: 400px;
+  overflow: auto;
+}
+
+.Chat #members p{
+  font-weight: bold;
+  padding: 3px;
+  margin: 0;
+}
+
+.Chat #members p:hover{
+  background-color: orange;
+  cursor: pointer;
+}
+
+.Chat #announce {
+  border: solid 1px black;
+  height: 400px;
+  overflow: auto;
+}
+
+.Chat #announce p{
+  padding: 3px;
+  margin: 0;
 }
 
 .Chat #input_zone {

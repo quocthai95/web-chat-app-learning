@@ -1,6 +1,8 @@
 const userModel = {
-  userName : null,
-  userId: null
+  username : null,
+  nickname: null,
+  password: null,
+  socketId:null
 }
 
 export default userModel;

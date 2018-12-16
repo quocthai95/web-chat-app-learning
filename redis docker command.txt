@@ -1,0 +1,11 @@
++ Create redis-rejson :
+docker run -p 6379:6379 --name redis-rejson redislabs/rejson:latest
+
++ Start redis-rejson ( after installed )
+docker start redis-rejson
+
++ Show idcontainer of redis-rejson:
+docker ps -a
+
++ Show redis-cli bash:
+docker exec -it idofcontainer redis-cli

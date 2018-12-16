@@ -3,20 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "axios": "^0.18.0",
     "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
     "express": "^4.16.4",
+    "nodemon": "^1.18.9",
     "react": "^16.6.3",
     "react-dom": "^16.6.3",
     "react-router-dom": "^4.3.1",
     "react-scripts": "2.1.1",
     "redis": "^2.8.0",
-    "socket.io": "^2.2.0"
+    "redis-rejson": "^1.0.0",
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "node": "nodemon backend/index.js",
+    "eject": "react-scripts eject",
+    "debug": "nodemon --inspect backend/index.js"
   },
   "eslintConfig": {
     "extends": "react-app"
