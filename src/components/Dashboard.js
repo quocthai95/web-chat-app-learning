@@ -7,9 +7,41 @@ import Room from '../tpl/Room';
 class Dashboard extends React.Component {
   state = {
     roomList : null,
-    user: null
+    user: null,
+    socket: null
   }
   socket = io(baseURL + '/channel');
+
+  constructor(props) {
+    super(props);
+    // check login
+    (() => {
+      if (this.props.location.state) {
+        console.log(this.props.location.state);
+
+        // get room list
+        axios.get(baseURL + '/room/getRoomList')
+        .then((res) => {
+          console.log(res.data);
+          this.setState({
+            roomList: res.data,
+            user: this.props.location.state,
+            socket: this.socket
+          })
+        })
+      }
+      else {
+        this.props.history.replace({pathname: '/'});
+      }
+    })();
+    //reload room list
+    this.socket.on('reloadRoomList', (res) => {
+      console.log(res.roomList);
+      this.setState({
+        roomList: res.roomList
+      })
+    })
+  }
 
   // create new room
   createRoom = () => {
@@ -26,7 +58,7 @@ class Dashboard extends React.Component {
     this.socket.emit('room.create', info, this.state.user);
 
     // move to new chatroom when successfully create room
-    this.socket.on('success', (data) => {
+    this.socket.on('success', (res) => {
       this.props.history.push({pathname: '/chatroom', state: {
         roomInfo: info,user: this.state.user}})
     })
@@ -58,27 +90,6 @@ class Dashboard extends React.Component {
     })
   }
 
-  componentWillMount = () => {
-    // check login
-    (() => {
-      if (this.props.location.state) {
-        console.log(this.props.location.state);
-
-        // get room list
-        axios.get(baseURL + '/room/getRoomList')
-        .then((res) => {
-          console.log(res.data);
-          this.setState({
-            roomList: res.data,
-            user: this.props.location.state
-          })
-        })
-      }
-      else {
-        this.props.history.replace({pathname: '/'});
-      }
-    })();
-  }
 
   componentDidMount = () => {
     // not allow roomid has space 

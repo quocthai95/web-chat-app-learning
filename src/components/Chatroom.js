@@ -7,10 +7,13 @@ class Chatroom extends React.Component {
   state = {
     memberList: null
   }
-  socket = io(baseURL + '/channel');
-  componentWillMount = () => {
-    (() => {
+  // socket = io(baseURL + '/channel');
+  socket = null;
 
+  constructor(props) {
+    super(props);
+    (() => {
+      this.socket = this.props.location.state.socket;
       // check login
       if (this.props.location.state) {
         console.log(this.props.location.state);

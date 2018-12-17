@@ -7,6 +7,7 @@ let channelHandler = (namespace) => {
 
     // create room
     socket.on('room.create', (res, user) => {
+      console.log(socket.id);
       // get roomList
         clientRedis.get('roomList', '.')
         .then((data) => {
@@ -26,9 +27,15 @@ let channelHandler = (namespace) => {
         // add new room to roomList 
         clientRedis.set('roomList', '.', roomList)
         .then((dt) => {
-          socket.emit('success', {
-            message: 'Room is created'
-          });
+          clientRedis.get('roomList', '.')
+          .then((data) => {
+            socket.emit('success', {
+              message: 'Room is created',
+            });
+            socket.broadcast.emit('reloadRoomList', {
+              roomList: JSON.parse(data)
+            })
+          })
         })
       }).catch((err) => {
           socket.emit('fail', {
@@ -40,6 +47,7 @@ let channelHandler = (namespace) => {
 
     // set socket info when join new room
     socket.on('room.join', (res, user) => {
+      console.log(socket.id);
       user.socketId = socket.id;
       socket.roomId = res.roomId;
       socket.user = user;
