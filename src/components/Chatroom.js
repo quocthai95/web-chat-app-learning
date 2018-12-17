@@ -27,15 +27,32 @@ class Chatroom extends React.Component {
       })
 
       // show err when fail to connect socket server
-      this.socket.on('fail', (data) => {
-        alert(data.message);
+      this.socket.on('fail', (res) => {
+        alert(res.message);
       })
 
       // react to new joiner
       this.socket.on('joined', (res) => {
         console.log(res);
         let p = document.createElement('p');
-        p.innerHTML = `<font color="red">${res.nickname}</font> has joined room chat! Please greeting them`;
+        p.innerHTML = `<font color="red">${res.nickname}</font> has joined room chat!`;
+        document.getElementById('announce').appendChild(p);
+      })
+
+      // get new message
+      this.socket.on('newMessage', (res) => {
+        console.log(res);
+        document.getElementById('feedback').innerHTML = '';
+        let p = document.createElement('p');
+        p.innerHTML = `<font color="red">${res.user.nickname}</font>: ${res.message}`;
+        document.getElementById('chatroom').appendChild(p);
+      })
+
+
+      // react to someone leave room
+      this.socket.on('someoneLeaveRoom', (res) => {
+        let p = document.createElement('p');
+        p.innerHTML = `<font color="red">${res.user.nickname}</font> has left room chat!`;
         document.getElementById('announce').appendChild(p);
       })
       }
@@ -45,8 +62,43 @@ class Chatroom extends React.Component {
     })();
   }
 
+  componentDidMount = () => {
+    document.getElementById('message').addEventListener('keyup', (e) => {
+        this.socket.emit('typing', {
+          user: this.props.location.state.user,
+          message: document.getElementById('message').value
+        });
+    })
+
+    this.socket.on('typing', (res) => {
+      console.log(res.message);
+      if(res.message)
+        document.getElementById('feedback').innerHTML = `<b>${res.user.nickname}</b> <i>is typing a message<i>`
+      else
+      document.getElementById('feedback').innerHTML = '';
+    })
+  }
+
+  componentWillUnmount = () => {
+    this.socket.emit('room.leave', this.props.location.state.user);
+  }
   
   render() {
+     // send message function
+     let sendMessage = (id) => {
+      // emit new message to room
+      if(document.getElementById(id).value) {
+        let p = document.createElement('p');
+        p.innerHTML = `<font color="blue">${this.props.location.state.user.nickname}</font>: ${document.getElementById(id).value}`;
+        document.getElementById('chatroom').appendChild(p);
+        this.socket.emit('sendMessage', {
+          message: document.getElementById(id).value,
+          user: this.props.location.state.user
+        })
+        document.getElementById(id).value = '';
+        
+      }
+    }
 
     // show members in room
     let memberList = null;
@@ -55,7 +107,11 @@ class Chatroom extends React.Component {
         <>
         {
           Object.keys(this.state.memberList).map(member => {
-            return <Member key={this.state.memberList[member].username} name={this.state.memberList[member].nickname} />
+            if(this.state.memberList[member].username === this.props.location.state.user.username) {
+              return <Member cssStyle={{color: 'blue'}} key={this.state.memberList[member].username} name={this.state.memberList[member].nickname} />
+            }
+            else 
+              return <Member key={this.state.memberList[member].username} name={this.state.memberList[member].nickname} />
           })
         }
         </>
@@ -74,7 +130,7 @@ class Chatroom extends React.Component {
 
     <section id="input_zone"> 
       <input id="message" className="form-control" type="text" style= {{borderColor: 'black'}}/>
-      <button id="send_message" className="btn btn-primary m-0" type="button">Send</button>
+      <button id="send_message" className="btn btn-primary m-0" type="button" onClick={()=> sendMessage('message')}>Send</button>
     </section>
     </div>
     <div className="Chat col-3">

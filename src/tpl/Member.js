@@ -3,7 +3,7 @@ import React from 'react';
 let Member = (props) => {
   return (
   <>
-  <p>{props.name}</p>
+  <p style={props.cssStyle}>{props.name}</p>
   </>
   )
 }

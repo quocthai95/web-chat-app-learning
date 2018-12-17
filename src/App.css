@@ -35,7 +35,19 @@
   border: solid 1px black;
   height: 400px;
   overflow: auto;
+  position: relative;
 }
+
+.Chat #chatroom #feedback {
+  position: absolute;
+  bottom: 0;
+}
+
+.Chat #members p{
+  padding: 3px;
+  margin: 0;
+}
+
 
 .Chat #members {
   border: solid 1px black;
