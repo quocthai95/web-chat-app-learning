@@ -38,6 +38,10 @@
   position: relative;
 }
 
+.Chat #chatroom p{
+  margin-bottom: 0;
+}
+
 .Chat #chatroom #feedback {
   position: absolute;
   bottom: 0;

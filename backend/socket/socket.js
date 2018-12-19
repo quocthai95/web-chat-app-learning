@@ -7,7 +7,7 @@ let channelHandler = (namespace) => {
 
     // create room
     socket.on('room.create', (res, user) => {
-      console.log(socket.id);
+      console.log(socket.id + ' create room ' + res.roomId);
       // get roomList
         clientRedis.get('roomList', '.')
         .then((data) => {
@@ -29,9 +29,6 @@ let channelHandler = (namespace) => {
         .then((dt) => {
           clientRedis.get('roomList', '.')
           .then((data) => {
-            socket.emit('success', {
-              message: 'Room is created',
-            });
             socket.broadcast.emit('reloadRoomList', {
               roomList: JSON.parse(data)
             })
@@ -47,7 +44,7 @@ let channelHandler = (namespace) => {
 
     // set socket info when join new room
     socket.on('room.join', (res, user) => {
-      console.log(socket.id);
+      console.log(socket.id + ' joined room');
       user.socketId = socket.id;
       socket.roomId = res.roomId;
       socket.user = user;
@@ -65,7 +62,7 @@ let channelHandler = (namespace) => {
         clientRedis.set('roomList', '.' + res.roomId + '.activeUserList', JSON.stringify(room.activeUserList))
         .then((data) => {
           socket.join(res.roomId);
-          console.log(`socketId: ${socket.user.username} joined ${res.roomId}`);
+          console.log(`socketId: ${socket.user.username} joined ${socket.roomId}`);
           socket.to(res.roomId).emit('joined', user);
           clientRedis.get('roomList', '.' + res.roomId + '.activeUserList')
           .then((data) => {
@@ -83,6 +80,7 @@ let channelHandler = (namespace) => {
         user: res.user,
         message: res.message
       })
+      clientRedis.client.json_arrappend('roomList', '.' + socket.roomId + '.messHistory', JSON.stringify([res.user.nickname, res.message])); 
     })
 
     // notify someone is typing
@@ -95,11 +93,46 @@ let channelHandler = (namespace) => {
       socket.leave(socket.roomId);
       console.log(`socketId: ${socket.user.username} left ${socket.roomId}`);
       clientRedis.del('roomList', '.' + socket.roomId + '.activeUserList.' + socket.user.username)
-      .then((data) => {
+      .then(() => {
         console.log(`remove ${socket.user.username} from activeUserList of ${socket.roomId}`);
         clientRedis.get('roomList', '.' + socket.roomId + '.activeUserList')
           .then((data) => {
-            // reload member list in room
+            if(data === "{}") {
+              // remove room
+              let removedTime = Date.now();
+              //get info removed room
+              clientRedis.get('roomList', '.' + socket.roomId)
+              .then((info) => {
+                let infor = JSON.parse(info);
+              //get room list history
+                clientRedis.get('roomListHistory', '.')
+                .then((infoList) => {
+                  const roomListHistory = JSON.stringify({
+                    ...JSON.parse(infoList),
+                    ...{[infor.roomId + '-' + removedTime]: infor}
+                  });
+
+                  //add removed room to room list history
+                  clientRedis.set('roomListHistory', '.', roomListHistory)
+                  .then(() => {
+                    //remove room from room list
+                    clientRedis.del('roomList', '.' + socket.roomId)
+                    .then(() => {
+                      console.log(`remove ${socket.roomId} room!`);
+                      //reload roomlist
+                      clientRedis.get('roomList', '')
+                      .then((rl) => {
+                        namespace.emit('reloadRoomList', {
+                          roomList: JSON.parse(rl)
+                        })
+                      })
+                    })
+                  })
+                })
+              })
+            }
+            else {
+               // reload member list in room
             socket.to(socket.roomId).emit('reloadMember', {
               data: JSON.parse(data)
             })
@@ -108,6 +141,7 @@ let channelHandler = (namespace) => {
             socket.to(socket.roomId).emit('someoneLeaveRoom', {
               user: socket.user
             })
+            }
           })
         
       })
@@ -124,7 +158,41 @@ let channelHandler = (namespace) => {
         console.log(`remove ${socket.user.username} from activeUserList of ${socket.roomId}`);
         clientRedis.get('roomList', '.' + socket.roomId + '.activeUserList')
           .then((data) => {
-            // reload member list in room
+            if(data === '{}') {
+              // remove room
+              let removedTime = Date.now();
+              //get info removed room
+              clientRedis.get('roomList', '.' + socket.roomId)
+              .then((info) => {
+                let infor = JSON.parse(info);
+              //get room list history
+                clientRedis.get('roomListHistory', '.')
+                .then((infoList) => {
+                  const roomListHistory = JSON.stringify({
+                    ...JSON.parse(infoList),
+                    ...{[infor.roomId + '-' + removedTime]: infor}
+                  });
+
+                  //add removed room to room list history
+                  clientRedis.set('roomListHistory', '.', roomListHistory)
+                  .then(() => {
+                    //remove room from room list
+                    clientRedis.del('roomList', '.' + socket.roomId)
+                    .then(() => {
+                      //reload roomlist
+                      clientRedis.get('roomList', '')
+                      .then((rl) => {
+                        namespace.emit('reloadRoomList', {
+                          roomList: JSON.parse(rl)
+                        })
+                      })
+                    })
+                  })
+                })
+              })
+            }
+            else {
+               // reload member list in room
             socket.to(socket.roomId).emit('reloadMember', {
               data: JSON.parse(data)
             })
@@ -133,6 +201,7 @@ let channelHandler = (namespace) => {
             socket.to(socket.roomId).emit('someoneLeaveRoom', {
               user: socket.user
             })
+            }
           })
         
       })

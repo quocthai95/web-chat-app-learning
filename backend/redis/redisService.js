@@ -41,8 +41,10 @@ let del = (key, path) => {
   })
 }
 
+
 module.exports = {
   get: get,
   set: set,
-  del: del
+  del: del,
+  client: client
 }

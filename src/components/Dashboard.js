@@ -1,32 +1,36 @@
 import React from 'react';
 import { baseURL } from '../shared/config';
-import io from 'socket.io-client';
 import axios from 'axios';
 import Room from '../tpl/Room';
+import socket from '../shared/socket';
 
 class Dashboard extends React.Component {
   state = {
     roomList : null,
-    user: null,
-    socket: null
+    user: null
   }
-  socket = io(baseURL + '/channel');
+
+  _isMounted = false;
 
   constructor(props) {
     super(props);
+
+    //declare accessible html elements
+    this.roomIdInput = React.createRef();
+    this.roomNameInput = React.createRef();
+
     // check login
     (() => {
       if (this.props.location.state) {
         console.log(this.props.location.state);
-
         // get room list
         axios.get(baseURL + '/room/getRoomList')
         .then((res) => {
           console.log(res.data);
+          if(this._isMounted)
           this.setState({
             roomList: res.data,
-            user: this.props.location.state,
-            socket: this.socket
+            user: this.props.location.state
           })
         })
       }
@@ -35,19 +39,21 @@ class Dashboard extends React.Component {
       }
     })();
     //reload room list
-    this.socket.on('reloadRoomList', (res) => {
+    socket.on('reloadRoomList', (res) => {
       console.log(res.roomList);
+      if(this._isMounted)
       this.setState({
         roomList: res.roomList
       })
     })
+
   }
 
   // create new room
   createRoom = () => {
     let info = {
-      roomId: document.getElementById('roomId').value,
-      roomName: document.getElementById('roomName').value,
+      roomId: this.roomIdInput.current.value,
+      roomName: this.roomNameInput.current.value,
       host: this.props.location.state,
       messHistory: [],
       status: 'ACTIVED',
@@ -55,16 +61,12 @@ class Dashboard extends React.Component {
     };
 
     // emit create event to server
-    this.socket.emit('room.create', info, this.state.user);
-
-    // move to new chatroom when successfully create room
-    this.socket.on('success', (res) => {
-      this.props.history.push({pathname: '/chatroom', state: {
-        roomInfo: info,user: this.state.user}})
-    })
+    socket.emit('room.create', info, this.state.user);
+    this.props.history.push({pathname: '/chatroom', state: {
+      roomInfo: info,user: this.state.user}})
 
     // show error when create
-    this.socket.on('fail', (data) => {
+    socket.on('fail', (data) => {
       alert(data.message);
     })
   }
@@ -79,7 +81,7 @@ class Dashboard extends React.Component {
         roomId: res.data.roomId,
         roomName: res.data.roomName,
         host: res.data.host,
-        messHistory: [],
+        messHistory: res.messHistory,
         status: res.data.status,
         activeUserList: res.data.activeUserList
       }
@@ -92,15 +94,20 @@ class Dashboard extends React.Component {
 
 
   componentDidMount = () => {
+    this._isMounted = true;
     // not allow roomid has space 
     (() => {
-      document.getElementById('roomId').addEventListener('keypress', (e) => {
+      this.roomIdInput.current.addEventListener('keypress', (e) => {
         if (e.code === 'Space') {
           e.preventDefault();
           return false;
         }
       })
     })();
+  }
+
+  componentWillUnmount = () => {
+    this._isMounted = false;
   }
 
   render() {
@@ -146,11 +153,11 @@ class Dashboard extends React.Component {
             <div className="modal-body">
               <div className="form-group">
                 <label htmlFor="nameRoom">Your Room Id</label>
-                <input className="form-control" id="roomId"></input>
+                <input className="form-control" id="roomId" ref={this.roomIdInput}></input>
               </div>
               <div className="form-group">
                 <label htmlFor="nameRoom">Your Room Name</label>
-                <input className="form-control" id="roomName"></input>
+                <input className="form-control" id="roomName" ref={this.roomNameInput}></input>
               </div>
             </div>
             <div className="modal-footer">

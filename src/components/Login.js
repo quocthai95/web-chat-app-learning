@@ -10,11 +10,18 @@ class Login extends React.Component {
     access: false
   };
 
+  //declare accessible html elements
+  userNameLogin = React.createRef();
+  passwordLogin = React.createRef();
+  userName = React.createRef();
+  nickName = React.createRef();
+  password = React.createRef();
+
   // check account
   loginAuth = () => {
     axios.post(baseURL + '/user/checkAccount', {
-      username: document.getElementById('userNameLogin').value,
-      password: document.getElementById('passwordLogin').value
+      username: this.userNameLogin.current.value,
+      password: this.passwordLogin.current.value
     })
     .then((res) => {
       if(!res.data)
@@ -40,9 +47,9 @@ class Login extends React.Component {
   createAccount = () => {
     this.setState({
       user : {
-        username : document.getElementById('userName').value,
-        nickname : document.getElementById('nickName').value,
-        password : document.getElementById('password').value
+        username : this.userName.current.value,
+        nickname : this.nickName.current.value,
+        password : this.password.current.value
       }
     },() => {
       axios.post(baseURL + '/user/createAccount', this.state.user)
@@ -57,7 +64,7 @@ class Login extends React.Component {
   componentDidMount = () => {
     // not allow username has space
     (() => {
-      document.getElementById('userName').addEventListener('keypress', (e) => {
+      this.userName.current.addEventListener('keypress', (e) => {
         if (e.code === 'Space') {
           e.preventDefault();
           return false;
@@ -81,13 +88,13 @@ class Login extends React.Component {
         <div className="form-group">
 
 
-            <input type="text" className="form-control" id="userNameLogin" />
+            <input type="text" className="form-control" id="userNameLogin" ref={this.userNameLogin}/>
 
         </div>
 
         <div className="form-group">
 
-            <input type="password" className="form-control" id="passwordLogin" />
+            <input type="password" className="form-control" id="passwordLogin" ref={this.passwordLogin}/>
 
         </div>
         <div className="forgot text-center">
@@ -110,15 +117,15 @@ class Login extends React.Component {
             <div className="modal-body">
               <div className="form-group">
                 <label htmlFor="userName">Your Username</label>
-                <input className="form-control" id="userName" ref="userName"></input>
+                <input className="form-control" id="userName" ref={this.userName}></input>
               </div>
               <div className="form-group">
                 <label htmlFor="nickName">Your Nickname</label>
-                <input className="form-control" id="nickName"></input>
+                <input className="form-control" id="nickName" ref={this.nickName}></input>
               </div>
               <div className="form-group">
                 <label htmlFor="password">Your Password</label>
-                <input className="form-control" id="password" type="password"></input>
+                <input className="form-control" id="password" ref={this.password} type="password"></input>
               </div>
             </div>
             <div className="modal-footer">
