@@ -4,7 +4,7 @@ import axios from 'axios';
 import Room from '../tpl/Room';
 import socket from '../shared/socket';
 
-class Dashboard extends React.Component {
+class Dashboard extends React.PureComponent {
   state = {
     roomList : null,
     user: null
@@ -23,15 +23,23 @@ class Dashboard extends React.Component {
     (() => {
       if (this.props.location.state) {
         console.log(this.props.location.state);
+        
         // get room list
         axios.get(baseURL + '/room/getRoomList')
         .then((res) => {
-          console.log(res.data);
-          if(this._isMounted)
-          this.setState({
-            roomList: res.data,
-            user: this.props.location.state
-          })
+          if(this._isMounted) {
+            console.log(res.data);
+            if(this.props.location.state.state)
+            this.setState({
+              roomList: res.data,
+              user: this.props.location.state.state
+            })
+            else
+            this.setState({
+              roomList: res.data,
+              user: this.props.location.state
+            })
+          }
         })
       }
       else {
@@ -40,11 +48,13 @@ class Dashboard extends React.Component {
     })();
     //reload room list
     socket.on('reloadRoomList', (res) => {
+      if(this._isMounted) {
       console.log(res.roomList);
-      if(this._isMounted)
-      this.setState({
-        roomList: res.roomList
-      })
+        this.setState({
+          roomList: res.roomList
+        })
+      }
+
     })
 
   }
@@ -62,11 +72,17 @@ class Dashboard extends React.Component {
 
     // emit create event to server
     socket.emit('room.create', info, this.state.user);
-    this.props.history.push({pathname: '/chatroom', state: {
+    socket.once('room.created', () => {
+      console.log(socket);
+      console.log(info );
+      this.props.history.push({pathname: '/chatroom', state: {
       roomInfo: info,user: this.state.user}})
+    })
+    
 
     // show error when create
-    socket.on('fail', (data) => {
+    socket.once('fail', (data) => {
+      console.log(socket);
       alert(data.message);
     })
   }

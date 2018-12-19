@@ -21,17 +21,19 @@ class Chatroom extends React.Component {
     super(props);
     (() => {
       
-    //declare accessible html elements
-    this.announce = React.createRef();
-    this.chatroom = React.createRef();
-    this.feedback = React.createRef();
-    this.message = React.createRef();
-
       // check login
       if (this.props.location.state) {
         console.log(this.props.location.state);
         // emit new joiner to other sockets in room
         socket.emit('room.join', this.props.location.state.roomInfo, this.props.location.state.user);
+        // react to failed join
+        socket.on('failGetRoom', () => {
+          if (this._isMounted) {
+            alert('Room is removed!');
+            console.log(this.props.location.state.user);
+            this.props.history.replace('/dashboard', {state: this.props.location.state.user});
+          }
+        })
 
         // get userActiveList 
         socket.on('reloadMember', (res) => {
@@ -50,21 +52,30 @@ class Chatroom extends React.Component {
         // react to new joiner
         socket.on('joined', (res) => {
           console.log(res);
-          this.newMessageDisplay(this.announce.current, res.nickname, 'has joined room chat!');
+          this.newMessageDisplay(document.getElementById('announce'), res.nickname, 'has joined room chat!');
         })
 
         // get new message
         socket.on('newMessage', (res) => {
           console.log(res);
-          this.feedback.current.innerHTML = '';
-          this.newMessageDisplay(this.chatroom.current, res.user.nickname, res.message);
+          document.getElementById('feedback').innerHTML = '';
+          this.newMessageDisplay(document.getElementById('chatroom'), res.user.nickname, res.message);
         })
 
 
         // react to someone leave room
         socket.on('someoneLeaveRoom', (res) => {
-          this.newMessageDisplay(this.announce.current, res.user.nickname, 'has left room chat!');
+          this.newMessageDisplay(document.getElementById('announce'), res.user.nickname, 'has left room chat!');
         })
+
+        // react to someone is typing
+        socket.on('typing', (res) => {
+          console.log(res.message);
+          if(res.message)
+          document.getElementById('feedback').innerHTML = `<b>${res.user.nickname}</b> <i>is typing a message<i>`
+          else
+          document.getElementById('feedback').innerHTML = '';
+    });
       }
       else {
         this.props.history.replace({pathname: '/'});
@@ -75,40 +86,36 @@ class Chatroom extends React.Component {
   componentDidMount = () => {
     this._isMounted = true;
     // emit that user is typing 
-    this.message.current.addEventListener('keyup', (e) => {
+    document.getElementById('message').addEventListener('keyup', (e) => {
         socket.emit('typing', {
           user: this.props.location.state.user,
-          message: this.message.current.value
+          message: document.getElementById('message').value
         });
     })
 
-    // react to someone is typing
-    socket.on('typing', (res) => {
-      console.log(res.message);
-      if(res.message)
-        this.feedback.current.innerHTML = `<b>${res.user.nickname}</b> <i>is typing a message<i>`
-      else
-      this.feedback.current.innerHTML = '';
-    })
+    
   }
 
   componentWillUnmount = () => {
     this._isMounted = false;
     socket.emit('room.leave', this.props.location.state.user);
+    console.log(socket);
+    socket.removeAllListeners("newMessage");
+    socket.removeAllListeners("sendMessage");
   }
   
   render() {
      // send message function
      let sendMessage = () => {
       // emit new message to room
-      if(this.message.current.value) {
-        this.newMessageDisplay(this.chatroom.current, this.props.location.state.user.nickname, this.message.current.value, 'blue');
+      if(document.getElementById('message').value) {
+        this.newMessageDisplay(document.getElementById('chatroom'), this.props.location.state.user.nickname, document.getElementById('message').value, 'blue');
         
         socket.emit('sendMessage', {
-          message: this.message.current.value,
+          message: document.getElementById('message').value,
           user: this.props.location.state.user
         })
-        this.message.current.value = '';
+        document.getElementById('message').value = '';
         
       }
     }

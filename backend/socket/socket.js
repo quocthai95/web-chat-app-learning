@@ -33,6 +33,7 @@ let channelHandler = (namespace) => {
               roomList: JSON.parse(data)
             })
           })
+          socket.emit('room.created');
         })
       }).catch((err) => {
           socket.emit('fail', {
@@ -50,9 +51,15 @@ let channelHandler = (namespace) => {
       socket.user = user;
 
       // get room info
-      clientRedis.get('roomList', '.' + res.roomId)
+      clientRedis.get('roomList', '.')
       .then((data) => {
-        let room = JSON.parse(data);
+         // check existed room
+         if(!data || !JSON.parse(data)[res.roomId]) {
+          socket.emit('failGetRoom');
+          return;
+        }
+
+        let room = JSON.parse(data)[res.roomId];
         room.activeUserList = {
           ...room.activeUserList,
           ...{[user.username]:user}
@@ -71,6 +78,9 @@ let channelHandler = (namespace) => {
             })
           })
         })
+      })
+      .catch((err) => {
+        socket.emit('failGetRoom');
       })
     });
 
