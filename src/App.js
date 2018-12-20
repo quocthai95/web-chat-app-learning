@@ -14,6 +14,7 @@ class App extends Component {
         <Route path="/" exact component={Login} />
         <Route path="/dashboard" exact component={Dashboard} />
         <Route path="/chatroom" exact component={Chatroom} />
+        <Route render={() => <h1>Not Found</h1>}/>
       </Switch>
       </div>
       </BrowserRouter>

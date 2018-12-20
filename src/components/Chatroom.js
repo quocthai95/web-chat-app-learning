@@ -3,13 +3,11 @@ import Member from '../tpl/Member';
 import socket from '../shared/socket';
 
 
-class Chatroom extends React.Component {
+class Chatroom extends React.PureComponent {
   state = {
     memberList: null
   }
 
-  _isMounted = false;
-  
   // create element to show message in UI
   newMessageDisplay = (element, nickname, mess, messColor='red') => {
     let p = document.createElement('p');
@@ -28,20 +26,17 @@ class Chatroom extends React.Component {
         socket.emit('room.join', this.props.location.state.roomInfo, this.props.location.state.user);
         // react to failed join
         socket.on('failGetRoom', () => {
-          if (this._isMounted) {
             alert('Room is removed!');
             console.log(this.props.location.state.user);
             this.props.history.replace('/dashboard', {state: this.props.location.state.user});
-          }
         })
 
         // get userActiveList 
         socket.on('reloadMember', (res) => {
-          console.log(res.data);
-          if(this._isMounted)
-          this.setState({
-            memberList: res.data
-          })
+            console.log(res.data);
+            this.setState({
+              memberList: res.data
+            })
         })
 
         // show err when fail to connect socket server
@@ -75,16 +70,15 @@ class Chatroom extends React.Component {
           document.getElementById('feedback').innerHTML = `<b>${res.user.nickname}</b> <i>is typing a message<i>`
           else
           document.getElementById('feedback').innerHTML = '';
-    });
+        });
       }
       else {
-        this.props.history.replace({pathname: '/'});
+        this.props.history.replace({pathname: '/dashboard'});
       }
     })();
   }
 
   componentDidMount = () => {
-    this._isMounted = true;
     // emit that user is typing 
     document.getElementById('message').addEventListener('keyup', (e) => {
         socket.emit('typing', {
@@ -97,14 +91,22 @@ class Chatroom extends React.Component {
   }
 
   componentWillUnmount = () => {
-    this._isMounted = false;
+    // announce leaving room to others
     socket.emit('room.leave', this.props.location.state.user);
     console.log(socket);
-    socket.removeAllListeners("newMessage");
-    socket.removeAllListeners("sendMessage");
+    // remove event listeners when leave room
+    socket.off("newMessage");
+    socket.off("sendMessage");
+    socket.off("reloadMember");
+    socket.off("joined");
+    socket.off("someoneLeaveRoom");
+    socket.off("typing");
+    socket.off("failGetRoom");
+    socket.off("fail");
   }
   
   render() {
+    
      // send message function
      let sendMessage = () => {
       // emit new message to room

@@ -10,8 +10,6 @@ class Dashboard extends React.PureComponent {
     user: null
   }
 
-  _isMounted = false;
-
   constructor(props) {
     super(props);
 
@@ -27,7 +25,6 @@ class Dashboard extends React.PureComponent {
         // get room list
         axios.get(baseURL + '/room/getRoomList')
         .then((res) => {
-          if(this._isMounted) {
             console.log(res.data);
             if(this.props.location.state.state)
             this.setState({
@@ -39,7 +36,6 @@ class Dashboard extends React.PureComponent {
               roomList: res.data,
               user: this.props.location.state
             })
-          }
         })
       }
       else {
@@ -48,12 +44,10 @@ class Dashboard extends React.PureComponent {
     })();
     //reload room list
     socket.on('reloadRoomList', (res) => {
-      if(this._isMounted) {
       console.log(res.roomList);
         this.setState({
           roomList: res.roomList
         })
-      }
 
     })
 
@@ -110,7 +104,6 @@ class Dashboard extends React.PureComponent {
 
 
   componentDidMount = () => {
-    this._isMounted = true;
     // not allow roomid has space 
     (() => {
       this.roomIdInput.current.addEventListener('keypress', (e) => {
@@ -123,7 +116,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentWillUnmount = () => {
-    this._isMounted = false;
+    socket.off('reloadRoomList');
   }
 
   render() {
