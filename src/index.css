@@ -43,3 +43,16 @@ code {
   opacity: 0.5;
   display: none;
 }
+
+.err_loader {
+  position: absolute;
+  top: 50px;
+  color: white;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  font-weight: bold;
+  font-size: 24px;
+  margin: auto;
+  text-align: center;
+}

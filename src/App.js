@@ -8,6 +8,7 @@ import Login from './components/Login';
 class App extends Component {
   render() {
     return (
+      <>
       <BrowserRouter>
       <div className="App">
       <Switch>
@@ -18,6 +19,8 @@ class App extends Component {
       </Switch>
       </div>
       </BrowserRouter>
+      <div id="loaderContainer"><div className="loader"></div><div className="err_loader">Can't connect to Server. Reconnecting...</div></div>
+      </>
     );
   }
 }

@@ -86,6 +86,25 @@ class Chatroom extends React.PureComponent {
           message: document.getElementById('message').value
         });
     })
+    socket.on('disconnect', (reason) => {
+  
+    console.log('disconnect ' + reason)
+      // else the socket will automatically try to reconnect
+      document.getElementById('loaderContainer').style.display = "block";
+      });
+    
+    socket.on('reconnect', (attemptNumber) => {
+      console.log('reconnect ' + attemptNumber)
+      socket.emit('room.join', this.props.location.state.roomInfo, this.props.location.state.user);
+      document.getElementById('loaderContainer').style.display = "none";
+      });
+    
+    
+    socket.on('reconnect_error', (error) => {
+      console.log('err to reconnect ' + error)
+      if(document.getElementById('loaderContainer').style.display === "" ||  document.getElementById('loaderContainer').style.display === "none")
+      document.getElementById('loaderContainer').style.display = "block";
+    });
 
     
   }
@@ -103,6 +122,9 @@ class Chatroom extends React.PureComponent {
     socket.off("typing");
     socket.off("failGetRoom");
     socket.off("fail");
+    socket.off("disconnect");
+    socket.off("reconnect");
+    socket.off("reconnect_error");
   }
   
   render() {
