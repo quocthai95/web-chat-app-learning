@@ -1,96 +1,34 @@
 const clientRedis = require('../redis/redisService');
+const config = require('../config/config');
+const roomService = require('./roomService');
+const baseService = require('./baseService');
 
 module.exports = function(io) {
 
 let channelHandler = (namespace) => {
-  return (socket) => {
+  console.log('Server is activating');
+  // check existed rooms when start Server
+  roomService.checkExistedRooms(namespace, config.timeForRemove);
 
+  return (socket) => {
     // create room
     socket.on('room.create', (res, user) => {
       console.log(socket.id + ' create room ' + res.roomId);
-      // get roomList
-        clientRedis.get('roomList', '.')
-        .then((data) => {
-          // check existed room
-         if(data && JSON.parse(data)[res.roomId]) {
-           socket.emit('fail', {
-             message: 'Room Id already is existed'
-           });
-           return;
-         }
-         
-        const roomList = JSON.stringify({
-          ...JSON.parse(data),
-          ...{[res.roomId]: res}
-        });
-
-        // add new room to roomList 
-        clientRedis.set('roomList', '.', roomList)
-        .then((dt) => {
-          clientRedis.get('roomList', '.')
-          .then((data) => {
-            socket.broadcast.emit('reloadRoomList', {
-              roomList: JSON.parse(data)
-            })
-          })
-          socket.emit('room.created');
-        })
-      }).catch((err) => {
-          socket.emit('fail', {
-            message: 'Error XXYYZZ'
-          })
-        })
-      
+      roomService.createRoom(socket, res);
     });
 
     // set socket info when join new room
-    socket.on('room.join', (res, user) => {
+    socket.on('room.join', (roomInfo, user) => {
       console.log(socket.id + ' joined room');
       user.socketId = socket.id;
-      socket.roomId = res.roomId;
+      socket.roomId = roomInfo.roomId;
       socket.user = user;
-
-      // get room info
-      clientRedis.get('roomList', '.')
-      .then((data) => {
-         // check existed room
-         if(!data || !JSON.parse(data)[res.roomId]) {
-          socket.emit('failGetRoom');
-          return;
-        }
-
-        let room = JSON.parse(data)[res.roomId];
-        room.activeUserList = {
-          ...room.activeUserList,
-          ...{[user.username]:user}
-        }
-
-        // add socket to userActiveList
-        clientRedis.set('roomList', '.' + res.roomId + '.activeUserList', JSON.stringify(room.activeUserList))
-        .then((data) => {
-          socket.join(res.roomId);
-          console.log(`socketId: ${socket.user.username} joined ${socket.roomId}`);
-          socket.to(res.roomId).emit('joined', user);
-          clientRedis.get('roomList', '.' + res.roomId + '.activeUserList')
-          .then((data) => {
-            namespace.to(socket.roomId).emit('reloadMember', {
-              data: JSON.parse(data)
-            })
-          })
-        })
-      })
-      .catch((err) => {
-        socket.emit('failGetRoom');
-      })
+      roomService.joinRoom(socket, roomInfo, user, namespace);
     });
 
     // get new message
     socket.on('sendMessage', (res) => {
-      socket.to(socket.roomId).emit('newMessage', {
-        user: res.user,
-        message: res.message
-      })
-      clientRedis.client.json_arrappend('roomList', '.' + socket.roomId + '.messHistory', JSON.stringify([res.user.nickname, res.message])); 
+       baseService.saveNewMessage(socket, res);
     })
 
     // notify someone is typing
@@ -100,122 +38,13 @@ let channelHandler = (namespace) => {
 
     // leave room
     socket.on('room.leave', (res) => {
-      socket.leave(socket.roomId);
-      console.log(`socketId: ${socket.user.username} left ${socket.roomId}`);
-      clientRedis.del('roomList', '.' + socket.roomId + '.activeUserList.' + socket.user.username)
-      .then(() => {
-        console.log(`remove ${socket.user.username} from activeUserList of ${socket.roomId}`);
-        clientRedis.get('roomList', '.' + socket.roomId + '.activeUserList')
-          .then((data) => {
-            if(data === "{}") {
-              // remove room
-              let removedTime = Date.now();
-              //get info removed room
-              clientRedis.get('roomList', '.' + socket.roomId)
-              .then((info) => {
-                let infor = JSON.parse(info);
-              //get room list history
-                clientRedis.get('roomListHistory', '.')
-                .then((infoList) => {
-                  const roomListHistory = JSON.stringify({
-                    ...JSON.parse(infoList),
-                    ...{[infor.roomId + '-' + removedTime]: infor}
-                  });
-
-                  //add removed room to room list history
-                  clientRedis.set('roomListHistory', '.', roomListHistory)
-                  .then(() => {
-                    //remove room from room list
-                    clientRedis.del('roomList', '.' + socket.roomId)
-                    .then(() => {
-                      console.log(`remove ${socket.roomId} room!`);
-                      //reload roomlist
-                      clientRedis.get('roomList', '')
-                      .then((rl) => {
-                        namespace.emit('reloadRoomList', {
-                          roomList: JSON.parse(rl)
-                        })
-                      })
-                    })
-                  })
-                })
-              })
-            }
-            else {
-               // reload member list in room
-            socket.to(socket.roomId).emit('reloadMember', {
-              data: JSON.parse(data)
-            })
-
-            //emit someone leave to room
-            socket.to(socket.roomId).emit('someoneLeaveRoom', {
-              user: socket.user
-            })
-            }
-          })
-        
-      })
-
+      roomService.leaveRoom(socket, namespace, config.timeForRemove);
     })
 
 
     // remove socket from activeUserList of Joined Room when disconnect
     socket.on('disconnect', (res) => {
-      if (socket.user && socket.user.username && socket.roomId) {
-        console.log(socket.user.username + ' has left ' + socket.roomId);
-      clientRedis.del('roomList', '.' + socket.roomId + '.activeUserList.' + socket.user.username)
-      .then((data) => {
-        console.log(`remove ${socket.user.username} from activeUserList of ${socket.roomId}`);
-        clientRedis.get('roomList', '.' + socket.roomId + '.activeUserList')
-          .then((data) => {
-            if(data === '{}') {
-              // remove room
-              let removedTime = Date.now();
-              //get info removed room
-              clientRedis.get('roomList', '.' + socket.roomId)
-              .then((info) => {
-                let infor = JSON.parse(info);
-              //get room list history
-                clientRedis.get('roomListHistory', '.')
-                .then((infoList) => {
-                  const roomListHistory = JSON.stringify({
-                    ...JSON.parse(infoList),
-                    ...{[infor.roomId + '-' + removedTime]: infor}
-                  });
-
-                  //add removed room to room list history
-                  clientRedis.set('roomListHistory', '.', roomListHistory)
-                  .then(() => {
-                    //remove room from room list
-                    clientRedis.del('roomList', '.' + socket.roomId)
-                    .then(() => {
-                      //reload roomlist
-                      clientRedis.get('roomList', '')
-                      .then((rl) => {
-                        namespace.emit('reloadRoomList', {
-                          roomList: JSON.parse(rl)
-                        })
-                      })
-                    })
-                  })
-                })
-              })
-            }
-            else {
-               // reload member list in room
-            socket.to(socket.roomId).emit('reloadMember', {
-              data: JSON.parse(data)
-            })
-
-            //emit someone leave to room
-            socket.to(socket.roomId).emit('someoneLeaveRoom', {
-              user: socket.user
-            })
-            }
-          })
-        
-      })
-      }
+      baseService.disconnectSocket(socket, roomService.removeRoom, config.timeForRemove, namespace);
     })
   }
 }
