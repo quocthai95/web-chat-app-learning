@@ -5,8 +5,6 @@
   "dependencies": {
     "axios": "^0.18.0",
     "body-parser": "^1.18.3",
-    "circular-json": "^0.5.9",
-    "cors": "^2.8.5",
     "express": "^4.16.4",
     "nodemon": "^1.18.9",
     "react": "^16.6.3",
@@ -17,8 +15,7 @@
     "redis-rejson": "^1.0.0",
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
-    "socket.io-redis": "^5.2.0",
-    "spin.js": "^4.0.0"
+    "socket.io-redis": "^5.2.0"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -6,7 +6,7 @@ let saveNewMessage = (socket, data) => {
     user: data.user,
     message: data.message
   })
-  clientRedis.client.json_arrappend('roomList', '.' + socket.roomId + '.messHistory', JSON.stringify([res.user.nickname, res.message]));
+  clientRedis.client.json_arrappend('roomList', '.' + socket.roomId + '.messHistory', JSON.stringify([data.user.nickname, data.message]));
 }
 
 // react to disconnect sockets
